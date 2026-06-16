@@ -345,7 +345,20 @@ function renderMenuComponentsEditor() {
   }
   renderMenuComponentSelect();
   menuComponentDraft = normalizeMenuComponents(menuComponentDraft, editingMenuItemId || "");
-  els.menuComponentsList.innerHTML = menuComponentDraft.length
+  const operatingCost = Math.max(Number(els.menuOperatingCostInput?.value || 0), 0);
+  const operatingCostType = operatingCostTypes.includes(els.menuOperatingCostTypeInput?.value)
+    ? els.menuOperatingCostTypeInput.value
+    : "other";
+  const operatingLine = operatingCost > 0 ? `
+        <article class="menu-component-line menu-operating-line">
+          <div>
+            <strong>تكلفة تشغيل للوحدة</strong>
+            <small>${escapeHtml(operatingCostLabels[operatingCostType] || operatingCostLabels.other)} محملة على كل عملية بيع</small>
+          </div>
+          <span>${money(operatingCost)}</span>
+        </article>
+      ` : "";
+  const componentLines = menuComponentDraft.length
     ? menuComponentDraft.map((component) => {
       const item = inventoryItemById(component.itemId);
       const unit = component.unit || itemUnit(item);
@@ -360,7 +373,10 @@ function renderMenuComponentsEditor() {
         </article>
       `;
     }).join("")
-    : '<div class="empty-state">لا توجد مكونات. الصنف سيستخدم سعر الشراء المكتوب فقط حتى تضيف مواد من المخزون.</div>';
+    : "";
+  els.menuComponentsList.innerHTML = componentLines || operatingLine
+    ? `${componentLines}${operatingLine}`
+    : '<div class="empty-state">لا توجد مكونات. الصنف سيستخدم سعر الشراء المكتوب وتكلفة التشغيل فقط حتى تضيف مواد من المخزون.</div>';
 }
 
 function addMenuComponent() {

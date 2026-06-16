@@ -504,6 +504,7 @@ function setMenuFormMode(item = null) {
   if (!item) {
     menuComponentDraft = [];
     els.menuForm.reset();
+    els.menuOperatingCostTypeInput.value = "other";
     renderMenuComponentsEditor();
     return;
   }
@@ -512,6 +513,8 @@ function setMenuFormMode(item = null) {
   els.menuNameInput.value = item.name || "";
   els.menuPriceInput.value = inputNumberValue(item.price);
   els.menuCostInput.value = inputNumberValue(item.cost);
+  els.menuOperatingCostInput.value = inputNumberValue(item.operatingCost);
+  els.menuOperatingCostTypeInput.value = operatingCostTypes.includes(item.operatingCostType) ? item.operatingCostType : "other";
   els.menuCategoryInput.value = item.category || "";
   renderMenuComponentsEditor();
   els.menuNameInput.focus();
@@ -530,9 +533,14 @@ function saveMenuItem(event) {
   const price = Number(els.menuPriceInput.value || 0);
   const costInput = els.menuCostInput.value.trim();
   const cost = costInput === "" ? 0 : Number(costInput);
+  const operatingCostInput = els.menuOperatingCostInput.value.trim();
+  const operatingCost = operatingCostInput === "" ? 0 : Number(operatingCostInput);
+  const operatingCostType = operatingCostTypes.includes(els.menuOperatingCostTypeInput.value)
+    ? els.menuOperatingCostTypeInput.value
+    : "other";
   const category = els.menuCategoryInput.value.trim();
   const components = normalizeMenuComponents(menuComponentDraft, editingMenuItemId || "");
-  if (!name || !category || price <= 0 || cost < 0 || (!components.length && costInput === "")) {
+  if (!name || !category || price <= 0 || cost < 0 || operatingCost < 0 || (!components.length && costInput === "" && operatingCostInput === "")) {
     showToast("أكمل بيانات الصنف أو أضف مكونات من المخزون.");
     return;
   }
@@ -546,14 +554,14 @@ function saveMenuItem(event) {
       return;
     }
 
-    Object.assign(item, { name, price, cost, category, components });
+    Object.assign(item, { name, price, cost, operatingCost, operatingCostType, category, components });
     setMenuFormMode();
     showToast("تم حفظ تعديل الصنف.");
     render();
     return;
   }
 
-  state.menu.push({ id: uid("item"), name, price, cost, category, components });
+  state.menu.push({ id: uid("item"), name, price, cost, operatingCost, operatingCostType, category, components });
   setMenuFormMode();
   showToast("تمت إضافة الصنف.");
   render();

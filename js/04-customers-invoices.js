@@ -318,8 +318,10 @@ function renderCustomerDetail() {
 function renderInvoices() {
   const rows = filteredInvoicesForView();
   const netTotal = rows.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0);
+  const paidTotal = rows.reduce((sum, invoice) => sum + Number(invoice.paid || 0), 0);
 
   els.invoiceNetTotal.textContent = money(netTotal);
+  els.invoicePaidTotal.textContent = money(paidTotal);
   els.invoiceNetCount.textContent = `${rows.length} ${rows.length === 1 ? "فاتورة" : "فواتير"}`;
 
   els.invoiceTableBody.innerHTML = rows.length

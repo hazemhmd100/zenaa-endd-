@@ -33,6 +33,13 @@ const paymentLabels = {
 };
 
 const paymentMethods = Object.keys(paymentLabels);
+const operatingCostLabels = {
+  gas: "غاز",
+  electricity: "كهربا",
+  labor: "عمال",
+  other: "أخرى"
+};
+const operatingCostTypes = Object.keys(operatingCostLabels);
 const workerConsumptionTypeLabels = {
   free: "مجاني للعامل",
   worker_price: "سعر عامل",
@@ -146,6 +153,7 @@ const els = {
   invoiceDateToInput: $("#invoiceDateToInput"),
   invoiceDateSortInput: $("#invoiceDateSortInput"),
   invoiceNetTotal: $("#invoiceNetTotal"),
+  invoicePaidTotal: $("#invoicePaidTotal"),
   invoiceNetCount: $("#invoiceNetCount"),
   invoiceEditForm: $("#invoiceEditForm"),
   invoiceEditTitle: $("#invoiceEditTitle"),
@@ -271,6 +279,8 @@ const els = {
   menuNameInput: $("#menuNameInput"),
   menuPriceInput: $("#menuPriceInput"),
   menuCostInput: $("#menuCostInput"),
+  menuOperatingCostInput: $("#menuOperatingCostInput"),
+  menuOperatingCostTypeInput: $("#menuOperatingCostTypeInput"),
   menuCategoryInput: $("#menuCategoryInput"),
   menuComponentItemInput: $("#menuComponentItemInput"),
   menuComponentQtyInput: $("#menuComponentQtyInput"),

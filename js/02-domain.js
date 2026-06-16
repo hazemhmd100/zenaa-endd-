@@ -485,7 +485,7 @@ function menuProfitTotals(range = { minDate: "", maxDate: "" }, items = state.me
 
 function menuMatchesSearch(item, query) {
   if (!query) return true;
-  const haystack = `${item.name || ""} ${item.category || ""} ${item.price || ""} ${item.cost || ""} ${stockText(item)}`.toLowerCase();
+  const haystack = `${item.name || ""} ${item.category || ""} ${item.price || ""} ${item.cost || ""} ${item.operatingCost || ""} ${operatingCostLabels[item.operatingCostType] || ""} ${stockText(item)}`.toLowerCase();
   return haystack.includes(query);
 }
 
@@ -911,6 +911,9 @@ function normalizeMenuItems(items = []) {
     if (next.stockQty !== undefined && next.stockQty !== null && next.stockQty !== "") {
       next.stockQty = Number(next.stockQty || 0);
     }
+    next.cost = Math.max(Number(next.cost || 0), 0);
+    next.operatingCost = Math.max(Number(next.operatingCost || 0), 0);
+    next.operatingCostType = operatingCostTypes.includes(next.operatingCostType) ? next.operatingCostType : "other";
     next.stockUnit = normalizeUnit(next.stockUnit || next.unit || "");
     next.components = normalizeMenuComponents(next.components || [], next.id);
     return next;
@@ -1014,7 +1017,7 @@ function menuItemComponents(item) {
   return normalizeMenuComponents(item?.components || [], item?.id || "");
 }
 
-function menuItemRecipeCost(item) {
+function menuItemBaseCost(item) {
   if (!ENABLE_STOCK_COMPONENTS) return Number(item?.cost || 0);
   const components = menuItemComponents(item);
   if (!components.length) return Number(item?.cost || 0);
@@ -1022,6 +1025,21 @@ function menuItemRecipeCost(item) {
     const stockItem = inventoryItemById(component.itemId);
     return sum + Number(component.qty || 0) * Number(stockItem?.cost || 0);
   }, 0);
+}
+
+function menuItemOperatingCost(item) {
+  return Math.max(Number(item?.operatingCost || 0), 0);
+}
+
+function menuItemRecipeCost(item) {
+  return menuItemBaseCost(item) + menuItemOperatingCost(item);
+}
+
+function operatingCostText(item) {
+  const amount = menuItemOperatingCost(item);
+  if (amount <= 0) return "";
+  const label = operatingCostLabels[item?.operatingCostType] || operatingCostLabels.other;
+  return `${label}: ${money(amount)}`;
 }
 
 function stockUsageFromMenuItem(item) {

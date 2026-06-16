@@ -415,6 +415,8 @@ function wireEvents() {
     renderMenuComponentsEditor();
   });
   els.menuForm.addEventListener("submit", saveMenuItem);
+  els.menuOperatingCostInput.addEventListener("input", renderMenuComponentsEditor);
+  els.menuOperatingCostTypeInput.addEventListener("change", renderMenuComponentsEditor);
   els.menuCancelEditButton.addEventListener("click", () => {
     setMenuFormMode();
     render();

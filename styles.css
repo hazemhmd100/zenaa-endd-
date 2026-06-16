@@ -1679,6 +1679,12 @@ h3 {
   padding: 9px;
 }
 
+.menu-component-line.menu-operating-line {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-color: rgba(95, 85, 168, 0.22);
+  background: linear-gradient(180deg, #fbfaff, #f1efff);
+}
+
 .menu-component-line strong,
 .menu-component-line small {
   display: block;
@@ -2490,9 +2496,9 @@ h3 {
 }
 
 .invoice-summary-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   border: 1px solid rgba(14, 124, 123, 0.24);
   border-radius: var(--radius);
@@ -2520,11 +2526,22 @@ h3 {
 }
 
 .invoice-summary-bar small {
+  justify-self: end;
   border: 1px solid rgba(14, 124, 123, 0.18);
   border-radius: 999px;
   background: #fff;
   padding: 6px 10px;
   white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .invoice-summary-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-summary-bar small {
+    justify-self: start;
+  }
 }
 
 .invoice-edit-form {
@@ -3351,6 +3368,12 @@ h3 {
   font-size: 12px;
   font-weight: 900;
   padding: 5px 8px;
+}
+
+.menu-components-summary .menu-operating-cost {
+  border-color: rgba(95, 85, 168, 0.24);
+  background: #f4f1ff;
+  color: var(--credit);
 }
 
 .settings-row-actions {

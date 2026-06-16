@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./styles.css?v=20260615-11" />
+  <link rel="stylesheet" href="./styles.css?v=20260616-02" />
   </head>
   <body>
     <div class="app-shell">
@@ -411,6 +411,10 @@
               <div>
                 <span>إجمالي الصافي</span>
                 <strong id="invoiceNetTotal">₪0</strong>
+              </div>
+              <div>
+                <span>إجمالي المدفوع</span>
+                <strong id="invoicePaidTotal">₪0</strong>
               </div>
               <small id="invoiceNetCount">0 فاتورة</small>
             </div>
@@ -1027,6 +1031,19 @@
                   <input id="menuCostInput" type="number" min="0" step="any" inputmode="decimal" placeholder="اختياري مع المكونات" />
                 </label>
                 <label class="field compact">
+                  <span>تشغيل للوحدة</span>
+                  <input id="menuOperatingCostInput" type="number" min="0" step="any" inputmode="decimal" placeholder="غاز، كهربا، عمال..." />
+                </label>
+                <label class="field compact">
+                  <span>نوع التشغيل</span>
+                  <select id="menuOperatingCostTypeInput">
+                    <option value="gas">غاز</option>
+                    <option value="electricity">كهربا</option>
+                    <option value="labor">عمال</option>
+                    <option value="other">أخرى</option>
+                  </select>
+                </label>
+                <label class="field compact">
                   <span>التصنيف</span>
                   <input id="menuCategoryInput" type="text" placeholder="مشروبات" required />
                 </label>
@@ -1336,17 +1353,17 @@
       </section>
     </template>
 
-  <script src="./js/01-core.js?v=20260615-11" defer></script>
-  <script src="./js/02-domain.js?v=20260615-11" defer></script>
-  <script src="./js/03-pos.js?v=20260615-11" defer></script>
-  <script src="./js/04-customers-invoices.js?v=20260615-11" defer></script>
-  <script src="./js/05-workers.js?v=20260615-11" defer></script>
-  <script src="./js/06-inventory-menu.js?v=20260615-11" defer></script>
-  <script src="./js/07-reports.js?v=20260615-11" defer></script>
-  <script src="./js/08-checkout.js?v=20260615-11" defer></script>
-  <script src="./js/09-actions.js?v=20260615-11" defer></script>
-  <script src="./js/10-close.js?v=20260615-11" defer></script>
-  <script src="./js/11-extras.js?v=20260615-11" defer></script>
-  <script src="./js/12-init.js?v=20260615-11" defer></script>
+  <script src="./js/01-core.js?v=20260616-02" defer></script>
+  <script src="./js/02-domain.js?v=20260616-02" defer></script>
+  <script src="./js/03-pos.js?v=20260616-02" defer></script>
+  <script src="./js/04-customers-invoices.js?v=20260616-02" defer></script>
+  <script src="./js/05-workers.js?v=20260616-02" defer></script>
+  <script src="./js/06-inventory-menu.js?v=20260616-02" defer></script>
+  <script src="./js/07-reports.js?v=20260616-02" defer></script>
+  <script src="./js/08-checkout.js?v=20260616-02" defer></script>
+  <script src="./js/09-actions.js?v=20260616-02" defer></script>
+  <script src="./js/10-close.js?v=20260616-02" defer></script>
+  <script src="./js/11-extras.js?v=20260616-02" defer></script>
+  <script src="./js/12-init.js?v=20260616-02" defer></script>
   </body>
 </html>

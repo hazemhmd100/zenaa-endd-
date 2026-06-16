@@ -412,11 +412,14 @@ function exportMenuExcel() {
 
   const rows = state.menu.map((item) => `
     <tr>
-      ${excelCell(JSON.stringify({ id: item.id, name: item.name, price: item.price, cost: item.cost, category: item.category }), 'data-field="menu-payload" style="display:none;mso-hide:all"')}
+      ${excelCell(JSON.stringify({ id: item.id, name: item.name, price: item.price, cost: item.cost, operatingCost: item.operatingCost || 0, operatingCostType: item.operatingCostType || "other", category: item.category }), 'data-field="menu-payload" style="display:none;mso-hide:all"')}
       ${excelCell(item.name)}
       ${excelCell(item.category || "")}
       ${excelCell(Number(item.price || 0))}
       ${excelCell(Number(item.cost || 0))}
+      ${excelCell(Number(item.operatingCost || 0))}
+      ${excelCell(operatingCostLabels[item.operatingCostType] || operatingCostLabels.other)}
+      ${excelCell(menuItemRecipeCost(item))}
     </tr>
   `).join("");
 
@@ -439,6 +442,9 @@ function exportMenuExcel() {
           <th>التصنيف</th>
           <th>سعر البيع</th>
           <th>سعر الشراء</th>
+          <th>تشغيل للوحدة</th>
+          <th>نوع التشغيل</th>
+          <th>التكلفة المعتمدة</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -474,6 +480,8 @@ function importMenuExcel(file) {
         const name = String(data.name).trim();
         const price = Math.max(Number(data.price || 0), 0);
         const cost = Math.max(Number(data.cost || 0), 0);
+        const operatingCost = Math.max(Number(data.operatingCost || 0), 0);
+        const operatingCostType = operatingCostTypes.includes(data.operatingCostType) ? data.operatingCostType : "other";
         const category = String(data.category || "").trim();
 
         // ابحث بالـ id أولاً ثم بالاسم
@@ -484,6 +492,8 @@ function importMenuExcel(file) {
           existing.name = name;
           existing.price = price;
           existing.cost = cost;
+          existing.operatingCost = operatingCost;
+          existing.operatingCostType = operatingCostType;
           if (category) existing.category = category;
           existing.updatedAt = new Date().toISOString();
           updated += 1;
@@ -493,6 +503,8 @@ function importMenuExcel(file) {
             name,
             price,
             cost,
+            operatingCost,
+            operatingCostType,
             category: category || "عام",
             components: [],
             createdAt: new Date().toISOString(),
@@ -551,13 +563,15 @@ function renderSettingsMenu() {
     const profitStats = menuItemProfitStats(item.id, range);
     const components = menuItemComponents(item);
     const costLabel = components.length ? "تكلفة المكونات" : "شراء";
-    const costValue = components.length ? menuItemRecipeCost(item) : Number(item.cost || 0);
+    const baseCostValue = menuItemBaseCost(item);
+    const totalCostValue = menuItemRecipeCost(item);
+    const operatingText = operatingCostText(item);
     const stock = menuItemDisplayStock(item);
     return `
       <article class="settings-row ${editingMenuItemId === item.id ? "is-editing" : ""}">
         <div>
           <strong>${escapeHtml(item.name)}</strong>
-          <small>${escapeHtml(item.category)} | بيع: ${money(item.price)} | ${costLabel}: ${item.cost === undefined && !components.length ? "غير محدد" : money(costValue)} | المخزون: ${escapeHtml(stock.text)}</small>
+          <small>${escapeHtml(item.category)} | بيع: ${money(item.price)} | ${costLabel}: ${item.cost === undefined && !components.length ? "غير محدد" : money(baseCostValue)}${operatingText ? ` | تشغيل ${escapeHtml(operatingText)}` : ""} | التكلفة المعتمدة: ${money(totalCostValue)} | المخزون: ${escapeHtml(stock.text)}</small>
           ${menuComponentsSummary(item)}
           <div class="settings-profit-row">
             <span>إجمالي الكمية المباعة: ${quantityText(profitStats.qty)}</span>
@@ -576,14 +590,17 @@ function renderSettingsMenu() {
 
 function menuComponentsSummary(item) {
   const components = menuItemComponents(item);
-  if (!components.length) return "";
+  const operatingTextValue = operatingCostText(item);
+  if (!components.length && !operatingTextValue) return "";
+  const componentChips = components.map((component) => {
+    const stockItem = inventoryItemById(component.itemId);
+    const sourceName = component.purchaseItemName || stockItem?.name || "مكون غير موجود";
+    return `<span>${escapeHtml(sourceName)} × ${quantityWithUnit(component.qty, component.unit || itemUnit(stockItem))}</span>`;
+  });
+  if (operatingTextValue) componentChips.push(`<span class="menu-operating-cost">تشغيل: ${escapeHtml(operatingTextValue)}</span>`);
   return `
     <div class="menu-components-summary">
-      ${components.map((component) => {
-        const stockItem = inventoryItemById(component.itemId);
-        const sourceName = component.purchaseItemName || stockItem?.name || "مكون غير موجود";
-        return `<span>${escapeHtml(sourceName)} × ${quantityWithUnit(component.qty, component.unit || itemUnit(stockItem))}</span>`;
-      }).join("")}
+      ${componentChips.join("")}
     </div>
   `;
 }
