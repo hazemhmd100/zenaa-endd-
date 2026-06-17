@@ -25,6 +25,7 @@ function wireEvents() {
       discount: 0,
       paymentMethod: getLastPaymentMethod(),
       payments: { cash: 0, bank: 0, wallet: 0 },
+      changeReturned: 0,
       note: "",
       createdAt: new Date().toISOString()
     };
@@ -105,6 +106,7 @@ function wireEvents() {
     order.items = [];
     order.discount = 0;
     order.payments = { cash: 0, bank: 0, wallet: 0 };
+    order.changeReturned = 0;
     order.note = "";
     render();
   });
@@ -131,7 +133,8 @@ function wireEvents() {
     }
   });
 
-  [els.customerPhoneInput, els.discountInput, els.paymentAmountInput, els.noteInput].forEach((input) => {
+  [els.customerPhoneInput, els.discountInput, els.paymentAmountInput, els.changeReturnedInput, els.noteInput].forEach((input) => {
+    if (!input) return;
     input.addEventListener("input", previewOrderChange);
   });
   els.paymentMethodInput.addEventListener("change", previewOrderChange);

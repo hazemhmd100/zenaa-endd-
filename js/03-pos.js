@@ -30,6 +30,14 @@ function render() {
   saveState();
 }
 
+function renderPosOnly() {
+  renderTables();
+  renderCustomerSelect();
+  renderOrder();
+  renderMenu();
+  saveState();
+}
+
 function renderTabs() {
   els.tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === state.view));
   els.views.forEach((view) => view.classList.toggle("is-active", view.id === `view-${state.view || "pos"}`));
@@ -102,17 +110,21 @@ function renderTables() {
     const math = order ? orderMath(order) : { total: 0, delta: 0 };
     const tableLabel = getTableLabel(tableId);
     const customerName = getOrderCustomerName(order);
+    const hasOrder = Boolean(order?.items.length);
+    const hasDebt = Boolean(hasOrder && math.delta > 0);
     const button = document.createElement("button");
     button.className = "table-button";
     button.type = "button";
     button.dataset.table = String(tableId);
     button.classList.toggle("is-active", state.selectedTable === tableId);
-    button.classList.toggle("has-order", Boolean(order?.items.length));
-    button.classList.toggle("has-debt", Boolean(order?.items.length && math.delta > 0));
+    button.classList.toggle("has-order", hasOrder);
+    button.classList.toggle("has-debt", hasDebt);
+    button.title = hasOrder ? `${tableLabel} - مستخدمة` : `${tableLabel} - متاحة`;
     button.innerHTML = `
       <strong>${escapeHtml(tableLabel)}</strong>
       ${customerName ? `<span class="table-customer">الزبون: ${escapeHtml(customerName)}</span>` : ""}
-      <span class="table-meta">${order?.items.length ? `${order.items.length} أصناف | ${money(math.total)}` : "جاهزة"}</span>
+      <span class="table-meta">${hasOrder ? `${order.items.length} أصناف | ${money(math.total)}` : "جاهزة"}</span>
+      <span class="table-state ${hasDebt ? "has-debt" : hasOrder ? "is-occupied" : "is-free"}">${hasOrder ? "مستخدمة" : "متاحة"}</span>
     `;
     els.tablesGrid.appendChild(button);
   }
@@ -176,10 +188,14 @@ function renderOrder() {
   const customer = getCustomer(order.customerId);
   const tableLabel = getTableLabel();
   const payment = getOrderPayment(order);
+  const hasOrder = Boolean(order.items.length);
 
   els.orderSubtitle.textContent = `رقم الطاولة ${state.selectedTable}`;
   els.tableNameInput.value = tableLabel;
-  els.orderStatus.textContent = order.items.length ? `${order.items.length} أصناف` : "فارغ";
+  if (els.orderPanel) els.orderPanel.classList.toggle("is-occupied", hasOrder);
+  els.orderStatus.classList.toggle("is-occupied", hasOrder);
+  els.orderStatus.classList.toggle("is-empty", !hasOrder);
+  els.orderStatus.textContent = hasOrder ? `${order.items.length} أصناف` : "فارغ";
   els.customerNameInput.value = order.customerName || customer?.name || "";
   els.customerPhoneInput.value = order.customerPhone || customer?.phone || "";
 
@@ -193,6 +209,7 @@ function renderOrder() {
   els.discountInput.value = inputNumberValue(order.discount);
   els.paymentMethodInput.value = payment.method;
   els.paymentAmountInput.value = inputNumberValue(payment.amount);
+  if (els.changeReturnedInput) els.changeReturnedInput.value = inputNumberValue(order.changeReturned);
   els.noteInput.value = order.note || "";
 
   renderOrderTotals(order);
@@ -235,12 +252,13 @@ function renderOrderTotals(order = getOpenOrder()) {
     ? "المتبقي دين"
     : math.delta < 0
       ? needsCustomerForCredit ? "زيادة كرصيد - سجل اسم العميل" : "زيادة كرصيد"
-      : "مدفوع كامل";
+      : math.changeReturned > 0 ? "مدفوع كامل بعد الراجع" : "مدفوع كامل";
   els.balanceResult.className = "balance-result";
   els.balanceResult.classList.add(
     needsCustomerForCredit ? "is-credit-warning" : math.delta > 0 ? "is-debt" : math.delta < 0 ? "is-credit" : "is-paid"
   );
-  els.balanceResult.innerHTML = `<span>${resultLabel}</span><strong>${money(Math.abs(math.delta))}</strong>`;
+  const changeNote = math.changeReturned > 0 ? `<small class="balance-change-note">الراجع ${money(math.changeReturned)}</small>` : "";
+  els.balanceResult.innerHTML = `<span>${resultLabel}${changeNote}</span><strong>${money(Math.abs(math.delta))}</strong>`;
 
   if (customer) {
     els.customerAccountBox.innerHTML = `<span>حساب ${escapeHtml(customer.name)}</span><strong>${balanceText(customer.balance)}</strong>`;

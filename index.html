@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./styles.css?v=20260616-02" />
+  <link rel="stylesheet" href="./styles.css?v=20260616-12" />
   </head>
   <body>
     <div class="app-shell">
@@ -209,17 +209,19 @@
                 <strong>₪0</strong>
               </div>
 
+              <label class="field compact change-return-field">
+                <span>الراجع للعميل</span>
+                <input id="changeReturnedInput" type="number" min="0" step="any" inputmode="decimal" placeholder="إذا رجّعت باقي اكتبه هنا" />
+              </label>
+
               <label class="field">
                 <span>ملاحظة على الفاتورة</span>
                 <textarea id="noteInput" rows="3" placeholder="اختياري"></textarea>
               </label>
 
-              <div class="quick-pay-row">
-                <button class="quick-pay-button" id="quickPayFullButton" type="button">💵 تعبئة المبلغ كامل</button>
-              </div>
-
               <div class="checkout-actions">
-                <button class="primary-button wide" id="closeInvoiceButton" type="button">إغلاق الفاتورة</button>
+                <button class="primary-button wide checkout-close-button" id="closeInvoiceButton" type="button">إغلاق الفاتورة</button>
+                <button class="quick-pay-button" id="quickPayFullButton" type="button">💵 تعبئة المبلغ كامل</button>
                 <button class="secondary-button wide" id="printButton" type="button">طباعة آخر فاتورة</button>
               </div>
 
@@ -1353,17 +1355,17 @@
       </section>
     </template>
 
-  <script src="./js/01-core.js?v=20260616-02" defer></script>
-  <script src="./js/02-domain.js?v=20260616-02" defer></script>
-  <script src="./js/03-pos.js?v=20260616-02" defer></script>
-  <script src="./js/04-customers-invoices.js?v=20260616-02" defer></script>
-  <script src="./js/05-workers.js?v=20260616-02" defer></script>
-  <script src="./js/06-inventory-menu.js?v=20260616-02" defer></script>
-  <script src="./js/07-reports.js?v=20260616-02" defer></script>
-  <script src="./js/08-checkout.js?v=20260616-02" defer></script>
-  <script src="./js/09-actions.js?v=20260616-02" defer></script>
-  <script src="./js/10-close.js?v=20260616-02" defer></script>
-  <script src="./js/11-extras.js?v=20260616-02" defer></script>
-  <script src="./js/12-init.js?v=20260616-02" defer></script>
+  <script src="./js/01-core.js?v=20260616-12" defer></script>
+  <script src="./js/02-domain.js?v=20260616-12" defer></script>
+  <script src="./js/03-pos.js?v=20260616-12" defer></script>
+  <script src="./js/04-customers-invoices.js?v=20260616-12" defer></script>
+  <script src="./js/05-workers.js?v=20260616-12" defer></script>
+  <script src="./js/06-inventory-menu.js?v=20260616-12" defer></script>
+  <script src="./js/07-reports.js?v=20260616-12" defer></script>
+  <script src="./js/08-checkout.js?v=20260616-12" defer></script>
+  <script src="./js/09-actions.js?v=20260616-12" defer></script>
+  <script src="./js/10-close.js?v=20260616-12" defer></script>
+  <script src="./js/11-extras.js?v=20260616-12" defer></script>
+  <script src="./js/12-init.js?v=20260616-12" defer></script>
   </body>
 </html>

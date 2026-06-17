@@ -72,6 +72,7 @@ let editingPurchaseId = null;
 let settlementDebtMode = false;
 let workerConsumptionMode = "worker_price"; // worker_price | salary | free
 let expandedCloseId = null;
+let cashboxAction = null;
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -80,6 +81,7 @@ const els = {
   views: document.querySelectorAll(".view"),
   statsStrip: $("#statsStrip"),
   tablesGrid: $("#tablesGrid"),
+  orderPanel: $(".order-panel"),
   newOrderButton: $("#newOrderButton"),
   addTableButton: $("#addTableButton"),
   deleteTableButton: $("#deleteTableButton"),
@@ -102,6 +104,7 @@ const els = {
   discountInput: $("#discountInput"),
   paymentMethodInput: $("#paymentMethodInput"),
   paymentAmountInput: $("#paymentAmountInput"),
+  changeReturnedInput: $("#changeReturnedInput"),
   noteInput: $("#noteInput"),
   subtotalValue: $("#subtotalValue"),
   totalValue: $("#totalValue"),

@@ -151,6 +151,9 @@ function renderLedgerItems(invoice) {
     return `<p class="ledger-note">${escapeHtml(invoice.note || "دين بدون أصناف")}</p>`;
   }
 
+  const changeLine = Number(invoice.changeReturned || 0) > 0
+    ? `<p class="ledger-note">راجع للعميل: ${money(invoice.changeReturned)}</p>`
+    : "";
   return `
     <div class="ledger-items">
       ${invoice.items.map((item) => `
@@ -160,6 +163,7 @@ function renderLedgerItems(invoice) {
         </span>
       `).join("")}
     </div>
+    ${changeLine}
   `;
 }
 
@@ -333,7 +337,7 @@ function renderInvoices() {
         <td>${escapeHtml(invoice.tableLabel || "-")}</td>
         <td class="invoice-items-cell">${renderLedgerItems(invoice)}</td>
         <td>${money(invoice.total)}</td>
-        <td>${money(invoice.paid)}</td>
+        <td>${invoicePaidDisplay(invoice)}</td>
         <td><span class="invoice-payment-method">${escapeHtml(invoicePaymentText(invoice))}</span></td>
         <td class="invoice-note-cell">${invoice.note ? escapeHtml(invoice.note) : "-"}</td>
         <td>
@@ -352,6 +356,13 @@ function renderInvoices() {
       </tr>
     `).join("")
     : '<tr><td colspan="11"><div class="empty-state">لا توجد فواتير مطابقة.</div></td></tr>';
+}
+
+function invoicePaidDisplay(invoice) {
+  const changeReturned = Number(invoice.changeReturned || 0);
+  if (changeReturned <= 0) return money(invoice.paid);
+  const received = Number(invoice.received ?? (Number(invoice.paid || 0) + changeReturned));
+  return `${money(invoice.paid)}<br><small>استلم ${money(received)} | راجع ${money(changeReturned)}</small>`;
 }
 
 function reverseInvoiceFromCustomer(invoice) {
@@ -655,6 +666,8 @@ function saveEditedInvoice(event) {
   invoice.subtotal = type === "sale" ? Math.max(lineSubtotal, total) : isDebt ? total : 0;
   invoice.discount = type === "sale" ? Math.max(invoice.subtotal - total, 0) : isPayment ? settlementDiscount : 0;
   invoice.paid = paid;
+  invoice.received = paid;
+  invoice.changeReturned = 0;
   invoice.delta = delta;
   invoice.payments = { cash: 0, bank: 0, wallet: 0 };
   if (!isDebt) invoice.payments[method] = paid;
@@ -795,6 +808,8 @@ function invoiceExcelPayload(invoice) {
     discount: Number(invoice.discount || 0),
     total: Number(invoice.total || 0),
     paid: Number(invoice.paid || 0),
+    received: Number(invoice.received ?? (Number(invoice.paid || 0) + Number(invoice.changeReturned || 0))),
+    changeReturned: Number(invoice.changeReturned || 0),
     delta: Number(invoice.delta ?? (Number(invoice.total || 0) - Number(invoice.paid || 0))),
     payments: invoice.payments || { cash: Number(invoice.paid || 0), bank: 0, wallet: 0 },
     status: invoice.status || invoiceStatus(Number(invoice.delta || 0), invoice.type || "sale"),
@@ -952,6 +967,8 @@ function exportInvoicesExcel() {
         ${excelCell(payload.discount)}
         ${excelCell(payload.total)}
         ${excelCell(payload.paid)}
+        ${excelCell(payload.received)}
+        ${excelCell(payload.changeReturned)}
         ${excelCell(payload.delta)}
         ${excelCell(statusText(payload.status))}
         ${excelCell(Number(payments.cash || 0))}
@@ -988,6 +1005,8 @@ function exportInvoicesExcel() {
           <th>الخصم</th>
           <th>الصافي</th>
           <th>المدفوع</th>
+          <th>المستلم قبل الراجع</th>
+          <th>الراجع للعميل</th>
           <th>المتبقي / الرصيد</th>
           <th>الحالة</th>
           <th>كاش</th>
@@ -1058,6 +1077,8 @@ function normalizeImportedInvoice(rawInvoice) {
   const discount = Math.max(Number(rawInvoice.discount || 0), 0);
   const total = Math.max(Number(rawInvoice.total ?? Math.max(subtotal - discount, 0)), 0);
   const paid = Math.max(Number(rawInvoice.paid || 0), 0);
+  const changeReturned = Math.max(Number(rawInvoice.changeReturned || 0), 0);
+  const received = Math.max(Number(rawInvoice.received ?? (paid + changeReturned)), 0);
   const delta = Number(rawInvoice.delta ?? (type === "payment" ? -(paid + discount) : type === "payout" ? paid : total - paid));
   const status = ["paid", "debt", "credit", "payment", "payout"].includes(rawInvoice.status)
     ? rawInvoice.status
@@ -1076,6 +1097,8 @@ function normalizeImportedInvoice(rawInvoice) {
     discount,
     total,
     paid,
+    received,
+    changeReturned,
     delta,
     payments: normalizeImportedPayments(rawInvoice.payments, paid),
     status,

@@ -12,6 +12,7 @@ function renderCashOnHand() {
   const c = cashOnHand();
   const cards = cashMethodMeta.map(({ key, label, icon }) => {
     const m = c.methods[key];
+    const lastAdjustment = latestCashAdjustment(key);
     return `
       <article class="cash-method-card ${m.current >= 0 ? "" : "is-negative"}">
         <div class="cash-method-head">
@@ -19,7 +20,8 @@ function renderCashOnHand() {
           <button class="cash-method-reconcile" type="button" data-reconcile-method="${key}" title="جرد ${label}">⚖</button>
         </div>
         <strong>${money(m.current)}</strong>
-        <small>أساس ${money(m.opening)} + دخل ${money(m.inflow)} − طلع ${money(m.outflow)}${m.adjustments ? ` ${m.adjustments >= 0 ? "+" : "−"} تسوية ${money(Math.abs(m.adjustments))}` : ""}</small>
+        <small>رأس مال ${money(m.opening)} + دخل ${money(m.inflow)} − طلع ${money(m.outflow)}${m.adjustments ? ` ${m.adjustments >= 0 ? "+" : "−"} جرد ${money(Math.abs(m.adjustments))}` : ""}</small>
+        ${lastAdjustment ? `<small>آخر جرد: ${money(lastAdjustment.counted)} | ${formatDate(lastAdjustment.createdAt)}</small>` : ""}
       </article>
     `;
   }).join("");
@@ -33,46 +35,164 @@ function renderCashOnHand() {
       <button class="secondary-button" id="setOpeningCashButton" type="button">✎ رأس المال</button>
     </div>
     <div class="cash-method-grid">${cards}</div>
+    ${renderCashboxActionCard(c)}
   `;
 
   const setBtn = document.getElementById("setOpeningCashButton");
-  if (setBtn) setBtn.addEventListener("click", setOpeningCash);
+  if (setBtn) setBtn.addEventListener("click", showOpeningCashCard);
   els.cashOnHandBox.querySelectorAll("[data-reconcile-method]").forEach((btn) => {
-    btn.addEventListener("click", () => reconcileCashMethod(btn.dataset.reconcileMethod));
+    btn.addEventListener("click", () => showReconcileCashCard(btn.dataset.reconcileMethod));
   });
+  bindCashboxActionCard();
 }
 
-function setOpeningCash() {
+function latestCashAdjustment(method) {
+  return (state.cashAdjustments || [])
+    .filter((entry) => entry.method === method)
+    .slice()
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))[0] || null;
+}
+
+function renderCashboxActionCard(c) {
+  if (!cashboxAction) return "";
+
+  if (cashboxAction.type === "opening") {
+    const opening = normalizeOpeningCash(state.openingCash);
+    return `
+      <form class="cashbox-action-card" id="openingCashForm">
+        <div>
+          <h3>رأس المال داخل البرنامج</h3>
+          <p>اكتب المبلغ الأساسي لكل طريقة دفع عند بداية استخدام البرنامج.</p>
+        </div>
+        <div class="cashbox-action-grid">
+          ${cashMethodMeta.map(({ key, label, icon }) => `
+            <label class="field compact">
+              <span>${icon} ${label}</span>
+              <input type="number" min="0" step="any" inputmode="decimal" data-opening-cash="${key}" value="${escapeAttr(inputNumberValue(opening[key]))}" />
+            </label>
+          `).join("")}
+        </div>
+        <div class="cashbox-action-buttons">
+          <button class="primary-button" type="submit">حفظ رأس المال</button>
+          <button class="secondary-button" type="button" data-cashbox-cancel>إلغاء</button>
+        </div>
+      </form>
+    `;
+  }
+
+  if (cashboxAction.type === "reconcile") {
+    const method = cashboxAction.method;
+    const meta = cashMethodMeta.find((item) => item.key === method);
+    const expected = c.methods[method]?.current || 0;
+    if (!meta) return "";
+
+    return `
+      <form class="cashbox-action-card" id="reconcileCashForm" data-method="${escapeAttr(method)}" data-expected="${escapeAttr(expected)}">
+        <div>
+          <h3>جرد ${meta.label}</h3>
+          <p>عدّ المبلغ الفعلي واكتبه، والبرنامج يسجل الفرق كتسوية صندوق.</p>
+        </div>
+        <div class="cashbox-reconcile-line">
+          <span>المتوقع حسب البرنامج</span>
+          <strong>${money(expected)}</strong>
+        </div>
+        <label class="field compact">
+          <span>المبلغ الفعلي الموجود</span>
+          <input id="cashboxCountedInput" type="number" min="0" step="any" inputmode="decimal" value="${escapeAttr(inputNumberValue(expected))}" />
+        </label>
+        <div class="cashbox-diff" id="cashboxDiffText">مطابق</div>
+        <div class="cashbox-action-buttons">
+          <button class="primary-button" type="submit">تثبيت الجرد</button>
+          <button class="secondary-button" type="button" data-cashbox-cancel>إلغاء</button>
+        </div>
+      </form>
+    `;
+  }
+
+  return "";
+}
+
+function bindCashboxActionCard() {
+  els.cashOnHandBox.querySelectorAll("[data-cashbox-cancel]").forEach((button) => {
+    button.addEventListener("click", () => {
+      cashboxAction = null;
+      render();
+    });
+  });
+
+  const openingForm = document.getElementById("openingCashForm");
+  if (openingForm) openingForm.addEventListener("submit", setOpeningCash);
+
+  const reconcileForm = document.getElementById("reconcileCashForm");
+  if (reconcileForm) {
+    const input = document.getElementById("cashboxCountedInput");
+    const update = () => updateCashboxDiff(reconcileForm);
+    if (input) input.addEventListener("input", update);
+    update();
+    reconcileForm.addEventListener("submit", reconcileCashMethod);
+  }
+}
+
+function showOpeningCashCard() {
+  cashboxAction = { type: "opening" };
+  render();
+}
+
+function showReconcileCashCard(method) {
+  cashboxAction = { type: "reconcile", method };
+  render();
+}
+
+function setOpeningCash(event) {
+  event.preventDefault();
   const opening = normalizeOpeningCash(state.openingCash);
   const next = { ...opening };
   for (const { key, label } of cashMethodMeta) {
-    const raw = window.prompt(`رأس مال ${label} عند بداية استخدام البرنامج (اتركه فاضي للتخطي):`, String(opening[key] || 0));
-    if (raw === null) return; // ألغى → نوقف بدون حفظ
-    if (raw.trim() === "") continue;
+    const input = event.currentTarget.querySelector(`[data-opening-cash="${key}"]`);
+    const raw = input?.value || "0";
     const value = Number(raw);
     if (!Number.isFinite(value) || value < 0) { showToast(`قيمة ${label} غير صحيحة.`); return; }
     next[key] = value;
   }
   state.openingCash = next;
+  cashboxAction = null;
   saveState();
   showToast("تم تحديث رأس المال.");
   render();
 }
 
-async function reconcileCashMethod(method) {
+function updateCashboxDiff(form) {
+  const expected = Number(form.dataset.expected || 0);
+  const counted = Number(document.getElementById("cashboxCountedInput")?.value || 0);
+  const diff = counted - expected;
+  const diffText = document.getElementById("cashboxDiffText");
+  if (!diffText) return;
+  diffText.classList.toggle("is-negative", diff < -0.001);
+  diffText.classList.toggle("is-positive", diff > 0.001);
+  diffText.textContent = Math.abs(diff) <= 0.001
+    ? "مطابق"
+    : diff > 0
+      ? `زيادة ${money(diff)}`
+      : `نقص ${money(Math.abs(diff))}`;
+}
+
+function reconcileCashMethod(event) {
+  event.preventDefault();
+  const method = event.currentTarget.dataset.method;
   const meta = cashMethodMeta.find((m) => m.key === method);
   if (!meta) return;
-  const c = cashOnHand();
-  const expected = c.methods[method].current;
-  const raw = window.prompt(`عُدّ رصيد ${meta.label} فعلاً واكتب المبلغ.\nالمتوقع حسب البرنامج: ${money(expected)}`, String(Math.round(expected)));
-  if (raw === null) return;
+  const expected = Number(event.currentTarget.dataset.expected || 0);
+  const raw = document.getElementById("cashboxCountedInput")?.value || "";
   const counted = Number(raw);
   if (!Number.isFinite(counted) || counted < 0) { showToast("اكتب رقم صحيح."); return; }
   const diff = counted - expected;
-  if (Math.abs(diff) <= 0.001) { showToast(`${meta.label} مطابق ✓`); return; }
+  if (Math.abs(diff) <= 0.001) {
+    cashboxAction = null;
+    showToast(`${meta.label} مطابق.`);
+    render();
+    return;
+  }
   const sign = diff > 0 ? "زيادة" : "نقص";
-  const ok = await appConfirm(`${meta.label}: في ${sign} بقيمة ${money(Math.abs(diff))}.\nهل تثبّت المبلغ الفعلي (${money(counted)}) وتسجّل الفرق كتسوية؟`);
-  if (!ok) return;
   state.cashAdjustments = state.cashAdjustments || [];
   state.cashAdjustments.push({
     id: uid("cashadj"),
@@ -82,6 +202,7 @@ async function reconcileCashMethod(method) {
     expected,
     createdAt: new Date().toISOString()
   });
+  cashboxAction = null;
   saveState();
   showToast(`تم تثبيت ${meta.label} على ${money(counted)} (${sign} ${money(Math.abs(diff))}).`);
   render();

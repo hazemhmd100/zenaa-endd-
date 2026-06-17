@@ -66,6 +66,7 @@ function getOpenOrder(tableId = state.selectedTable) {
       discount: 0,
       paymentMethod: getLastPaymentMethod(),
       payments: { cash: 0, bank: 0, wallet: 0 },
+      changeReturned: 0,
       note: "",
       createdAt: new Date().toISOString()
     };
@@ -355,6 +356,8 @@ function orderMath(order) {
       cost: 0,
       profit: manualDebt,
       paid: 0,
+      rawPaid: manualDebt,
+      changeReturned: 0,
       delta: manualDebt,
       manualDebt: true
     };
@@ -365,13 +368,35 @@ function orderMath(order) {
   const total = Math.max(subtotal - discount, 0);
   const cost = order.items.reduce((sum, item) => sum + Number(item.cost || 0) * Number(item.qty || 0), 0);
   const profit = total - cost;
-  const paid = paymentTotal(order.payments);
+  const rawPaid = paymentTotal(order.payments);
+  const changeReturned = Math.min(Math.max(Number(order.changeReturned || 0), 0), rawPaid);
+  const paid = Math.max(rawPaid - changeReturned, 0);
   const delta = total - paid;
-  return { subtotal, discount, total, cost, profit, paid, delta };
+  return { subtotal, discount, total, cost, profit, paid, rawPaid, changeReturned, delta };
 }
 
 function paymentTotal(payments = {}) {
   return Number(payments.cash || 0) + Number(payments.bank || 0) + Number(payments.wallet || 0);
+}
+
+function paymentsAfterChangeReturned(payments = {}, changeReturned = 0, preferredMethod = "cash") {
+  const next = {
+    cash: Number(payments.cash || 0),
+    bank: Number(payments.bank || 0),
+    wallet: Number(payments.wallet || 0)
+  };
+  let remaining = Math.max(Number(changeReturned || 0), 0);
+  const methods = [preferredMethod, ...paymentMethods.filter((method) => method !== preferredMethod)]
+    .filter((method) => paymentMethods.includes(method));
+
+  methods.forEach((method) => {
+    if (remaining <= 0) return;
+    const take = Math.min(next[method] || 0, remaining);
+    next[method] = Math.max((next[method] || 0) - take, 0);
+    remaining -= take;
+  });
+
+  return next;
 }
 
 function paymentMethodFromPayments(payments = {}) {
@@ -381,9 +406,11 @@ function paymentMethodFromPayments(payments = {}) {
 function invoicePaymentText(invoice) {
   const payments = invoice?.payments || {};
   const paidMethods = paymentMethods.filter((method) => Number(payments[method] || 0) > 0);
-  if (!paidMethods.length) return "بدون دفع";
-  if (paidMethods.length === 1) return paymentLabels[paidMethods[0]] || paidMethods[0];
-  return paidMethods.map((method) => `${paymentLabels[method] || method}: ${money(payments[method])}`).join("، ");
+  const changeReturned = Number(invoice?.changeReturned || 0);
+  const changeText = changeReturned > 0 ? ` | راجع ${money(changeReturned)}` : "";
+  if (!paidMethods.length) return `بدون دفع${changeText}`;
+  if (paidMethods.length === 1) return `${paymentLabels[paidMethods[0]] || paidMethods[0]}${changeText}`;
+  return `${paidMethods.map((method) => `${paymentLabels[method] || method}: ${money(payments[method])}`).join("، ")}${changeText}`;
 }
 
 function invoiceLineGross(item) {

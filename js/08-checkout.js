@@ -2,9 +2,37 @@
 // (مقسوم من app.js — الأسطر 4112-4539)
 
 function selectTable(tableId) {
-  state.selectedTable = Math.min(Math.max(Number(tableId), 1), getTableCount());
+  const nextTable = Math.min(Math.max(Number(tableId), 1), getTableCount());
+  state.selectedTable = nextTable;
   getOpenOrder();
-  render();
+  renderPosOnly();
+  confirmTableSwitch(nextTable);
+}
+
+function confirmTableSwitch(tableId) {
+  const tableLabel = getTableLabel(tableId);
+  els.tablesGrid.querySelectorAll(".is-switch-confirmed").forEach((button) => button.classList.remove("is-switch-confirmed"));
+  const selectedButton = els.tablesGrid.querySelector(`[data-table="${tableId}"]`);
+  selectedButton?.classList.add("is-switch-confirmed");
+
+  if (els.orderPanel) {
+    els.orderPanel.classList.remove("is-table-switching");
+    void els.orderPanel.offsetWidth;
+    els.orderPanel.classList.add("is-table-switching");
+  }
+
+  if (els.orderSubtitle) {
+    els.orderSubtitle.textContent = `تم الانتقال إلى ${tableLabel}`;
+  }
+
+  clearTimeout(confirmTableSwitch.timer);
+  confirmTableSwitch.timer = setTimeout(() => {
+    selectedButton?.classList.remove("is-switch-confirmed");
+    els.orderPanel?.classList.remove("is-table-switching");
+    if (Number(state.selectedTable) === Number(tableId) && els.orderSubtitle) {
+      els.orderSubtitle.textContent = `رقم الطاولة ${state.selectedTable}`;
+    }
+  }, 950);
 }
 
 function addTable() {
@@ -132,6 +160,7 @@ function syncOrderFields() {
   setLastPaymentMethod(order.paymentMethod);
   order.payments = { cash: 0, bank: 0, wallet: 0 };
   order.payments[order.paymentMethod] = Math.max(Number(els.paymentAmountInput.value || 0), 0);
+  order.changeReturned = Math.max(Number(els.changeReturnedInput?.value || 0), 0);
   order.note = els.noteInput.value.trim();
 }
 
@@ -179,6 +208,7 @@ function quickPayFillFull() {
   }
   const math = orderMath(order);
   els.paymentAmountInput.value = inputNumberValue(math.total);
+  if (els.changeReturnedInput) els.changeReturnedInput.value = "";
   syncOrderFields();
   renderOrderTotals();
   saveState();
@@ -188,6 +218,13 @@ async function closeInvoice() {
   syncOrderFields();
   const order = getOpenOrder();
   const math = orderMath(order);
+  const rawPaid = paymentTotal(order.payments);
+  if (Number(order.changeReturned || 0) > rawPaid + 0.001) {
+    showToast("الراجع للعميل أكبر من المبلغ المدفوع.");
+    els.changeReturnedInput?.focus();
+    renderOrderTotals(order);
+    return;
+  }
 
   if (!order.items.length && !math.manualDebt) {
     if (paymentTotal(order.payments) > 0 && !order.customerId && !order.customerName.trim()) {
@@ -223,7 +260,9 @@ async function closeInvoice() {
 
   const status = invoiceStatus(math.delta);
   const number = nextInvoiceNumber();
-  const invoicePayments = math.manualDebt ? { cash: 0, bank: 0, wallet: 0 } : { ...order.payments };
+  const invoicePayments = math.manualDebt
+    ? { cash: 0, bank: 0, wallet: 0 }
+    : paymentsAfterChangeReturned(order.payments, math.changeReturned, order.paymentMethod);
   const invoice = {
     id: uid("invoice"),
     number,
@@ -237,6 +276,8 @@ async function closeInvoice() {
     discount: math.discount,
     total: math.total,
     paid: math.paid,
+    received: math.manualDebt ? 0 : math.rawPaid,
+    changeReturned: math.manualDebt ? 0 : math.changeReturned,
     delta: math.delta,
     payments: invoicePayments,
     status,

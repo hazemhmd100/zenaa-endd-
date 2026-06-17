@@ -113,8 +113,11 @@ function printInvoice(invoice) {
   node.querySelector(".print-lines").innerHTML = invoice.items.length
     ? invoice.items.map((item) => `<p>${escapeHtml(item.name)} - ${item.qty} × ${money(item.price)} = ${money(item.qty * item.price)}</p>`).join("")
     : `<p>${escapeHtml(invoice.note || (invoice.type === "sale" ? "دين بدون أصناف" : "دفعة على الحساب"))}: ${money(invoice.type === "sale" ? invoice.total : invoice.paid)}</p>`;
+  const changeReturned = Number(invoice.changeReturned || 0);
+  const received = Number(invoice.received ?? (Number(invoice.paid || 0) + changeReturned));
   node.querySelector(".print-total").innerHTML = `
     <p>الصافي: ${money(invoice.total)}</p>
+    ${changeReturned > 0 ? `<p>المستلم: ${money(received)}</p><p>الراجع للعميل: ${money(changeReturned)}</p>` : ""}
     <p>المدفوع: ${money(invoice.paid)}</p>
     <p>الحالة: ${statusText(invoice.status)}</p>
   `;
